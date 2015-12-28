@@ -13,17 +13,9 @@
 
 function out=op_averaging(in);
 
-if in.flags.averaged
+if in.flags.averaged || in.dims.averages==0 || in.averages<2
     error('ERROR:  Averaging has already been performed!  Aborting!');
 end
-
-if ~in.flags.freqcorrected
-    disp('WARNING:  Frequency correction has not yet been performed!');
-end
-if ~in.flags.phasecorrected
-    disp('WARNING:  Phase correction has not yet been performed!');
-end
-
 
 %add the spectrum along the averages dimension;
 fids=sum(in.fids,in.dims.averages);
@@ -67,6 +59,7 @@ out.fids=fids;
 out.specs=specs;
 out.sz=sz;
 out.dims=dims;
+out.averages=1;
 
 %FILLING IN THE FLAGS
 out.flags=in.flags;

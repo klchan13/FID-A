@@ -2,7 +2,7 @@
 %Jamie Near, McGill University 2014.
 %
 % USAGE:
-% [out,out_w]=io_loadspec_data(filename,sw,Larmor,subspecs);
+% [out,out_w]=io_loadspec_data(filename,sw,Larmor,subspecs,te,tr);
 % 
 % DESCRIPTION:
 % Reads in philips MRS data (.data and .list files) using code adapted from 
@@ -22,8 +22,18 @@
 % sw         = spectral width (Hz) 
 % Larmor     = Larmor frequency (Hz/ppm, ie.  127 for 3T)
 % subspecs   = number of subspectra in the data (from spectral editing, ISIS, etc.)
+% te         = echo time (ms).  Optional, default is [].
+% tr         = repetition time (ms).  Optional, default is [].
 
-function [out,out_w]=io_loadspec_data(filename,sw,Larmor,subspecs);
+function [out,out_w]=io_loadspec_data(filename,sw,Larmor,subspecs,te,tr);
+
+if nargin<6
+    if nargin<5
+        te=[];
+    end
+    tr=[];
+end
+
 
 %read in the data using the philipsDataLoad.m (adapted from PhilipsRead_data.m)
 [FullData,WaterData]=philipsDataLoad(filename);
@@ -169,7 +179,7 @@ end
 %Calculate t and ppm arrays using the calculated parameters:
 f=[(-spectralwidth/2)+(spectralwidth/(2*sz(1))):spectralwidth/(sz(1)):(spectralwidth/2)-(spectralwidth/(2*sz(1)))];
 ppm=f/(Bo*42.577);
-ppm=ppm+4.6082;
+ppm=ppm+4.65;
 
 t=[0:dwelltime:(sz(1)-1)*dwelltime];
 
@@ -192,6 +202,8 @@ out.rawAverages=rawAverages;
 out.subspecs=subspecs;
 out.rawSubspecs=rawSubspecs;
 out.seq='';
+out.te=te;
+out.tr=tr;
 out.pointsToLeftshift=0;
 
 
@@ -233,6 +245,8 @@ out_w.rawAverages=rawAverages_w;
 out_w.subspecs=subspecs_w;
 out_w.rawSubspecs=rawSubspecs_w;
 out_w.seq='';
+out_w.te=te;
+out_w.tr=tr;
 out_w.pointsToLeftshift=0;
 
 

@@ -138,6 +138,8 @@ title('Water suppressed spectra (all averages)');
 out_cs2=out_cs;
 nBadAvgTotal=0;
 nbadAverages=1;
+allAveragesLeft=[1:out_cs.sz(out_cs.dims.averages)]';
+allBadAverages=[];
 rmbadav=input('would you like to remove bad averages?  ','s');
 close all;
 if rmbadav=='n' || rmbadav=='N'
@@ -149,10 +151,15 @@ else
         iter=1;
         nbadAverages=1;
         nBadAvgTotal=0;
+        allAveragesLeft=[1:out_cs.sz(out_cs.dims.averages)]';
+        allBadAverages=[];
         out_cs2=out_cs;
         while nbadAverages>0;
             [out_rm,metric{iter},badAverages]=op_rmbadaverages(out_cs2,nsd,'t');
-            badAverages;
+            allBadAverages=[allBadAverages; allAveragesLeft(badAverages)];
+            badavMask_temp=zeros(length(allAveragesLeft),1);
+            badavMask_temp(badAverages)=1;
+            allAveragesLeft=allAveragesLeft(~badavMask_temp);
             nbadAverages=length(badAverages)*out_raw.sz(out_raw.dims.subSpecs);
             nBadAvgTotal=nBadAvgTotal+nbadAverages;
             out_cs2=out_rm;
@@ -311,7 +318,7 @@ if blockDesign(1)<0
 %If the block design starts with a positive number, then the experiment 
 %started with an ON period.  The ON averages and OFF averages are filled as
 %follows:
-elseif blochDesign(1)>0
+elseif blockDesign(1)>0
     blockDesignTrimmedOFF=blockDesign-leadingAvgsToRmv/2;
     if isrow(blockDesign)
         blockDesignTrimmedON=blockDesign+[0 (leadingAvgsToRmv/2)*ones(1,length(blockDesign)-1)];
@@ -328,16 +335,19 @@ elseif blochDesign(1)>0
     OFFaverages=OFFaverages(1:sum(abs(blockDesign)));
 end
 
+%Now remove the entries from ONaverages and OFFaverages that correspond to
+%the bad-averages that were removed.
+BadAvgMask=zeros(length(ONaverages),1);
+BadAvgMask(allBadAverages)=1;
+ONaverages=ONaverages(~BadAvgMask);
+OFFaverages=OFFaverages(~BadAvgMask);
 
 %Now use op_takeaverages to make the stimulation ON and stimulation OFF
 %spectra.
-
 ONaverages=ONaverages>0; %ONaverages must be a logical;
 OFFaverages=OFFaverages>0; %OFFaverages must be a logical;
 outON_aa=op_takeaverages(out_aa,ONaverages);
 outOFF_aa=op_takeaverages(out_aa,OFFaverages);
-
-
 
 
 %now do the averaging and left shift to get rid of first order phase:

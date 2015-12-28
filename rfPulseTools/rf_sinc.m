@@ -2,7 +2,7 @@
 %Jamie Near, McGill University 2014.
 %
 % USAGE:
-% [rf,AMPINT]=rf_sinc(lobes,n,df);
+% [rf,AMPINT]=rf_sinc(lobes,n,type);
 % 
 % DESCRIPTION:
 % Create an n point sinc rf waveform.  Waveform can be converted in to siemens
@@ -12,6 +12,10 @@
 % INPUTS:
 % lobes      = Number of lobes in the sinc pulse.  
 % n          = number of points in the rf waveform.
+% type       = Type of pulse: 
+%               Refocusing = 'ref'
+%               Inversion  = 'inv'
+%               Excitation = 'exc'
 
 function [rf,AMPINT]=rf_sinc(lobes,n,type);
 

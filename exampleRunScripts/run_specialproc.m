@@ -64,6 +64,8 @@ if exist(filename2)
 else
     disp('***WATER UNSUPPRESSED DATA NOT FOUND***');
     coilcombos=op_getcoilcombos_specReg(op_combinesubspecs(op_averaging(out_raw),'diff'),0,0.01,2);
+    out_w='';
+    out_w_noproc='';
 end
 
 %now combine the coil channels:
@@ -107,11 +109,131 @@ end
 pause;
 close all;
 
-%Now combine the subspecs
-out_cs=op_combinesubspecs(out_cc,'diff');
-if exist(filename2)
-    out_w_cs=op_combinesubspecs(out_w_cc,'diff');
+%%%%%%%%%%%%%%%%%%%%%OPTIONAL ALIGNMENT OF SUBSPECTRA%%%%%%%%%%%%%%%%
+fs_ai=[];
+phs_ai=[];
+alignISIS=input('would you like to align subspectra?  ','s');
+if strcmp(alignISIS,'y') || strcmp(alignISIS,'Y')
+    %What we're actually doing is aligning the averages, then aligning the
+    %subspectra, then aligning the averages again, and then aligning the
+    %subspectra again.  
+    [out_ai,fs_temp,phs_temp]=op_alignAverages(out_cc,0.4,'y');
+    fs_ai=fs_temp;
+    phs_ai=phs_temp;
+    [out_ai,fs_temp,phs_temp]=op_alignISIS(out_ai,0.4);
+    fs_ai(:,2)=fs_ai(:,2)+fs_temp;
+    phs_ai(:,2)=phs_ai(:,2)+phs_temp;
+    [out_ai,fs_temp,phs_temp]=op_alignAverages(out_ai,0.4,'y');
+    fs_ai=fs_ai+fs_temp;
+    phs_ai=phs_ai+phs_temp;
+    [out_ai,fs_temp,phs_temp]=op_alignISIS(out_ai,0.4);
+    fs_ai(:,2)=fs_ai(:,2)+fs_temp;
+    phs_ai(:,2)=phs_ai(:,2)+phs_temp;
+    
+    %for fs_ai and phs_ai, take the average across both subspecs:
+    fs_ai=mean(fs_ai,2);
+    phs_ai=mean(phs_ai,2);
+    
+    if exist(filename2)
+        %Now repeat above for water unsuppressed data:
+        [out_w_ai,fs_w_temp,phs_w_temp]=op_alignAverages(out_w_cc,0.4,'y');
+        fs_w_ai=fs_w_temp;
+        phs_w_ai=phs_w_temp;
+        [out_w_ai,fs_w_temp,phs_w_temp]=op_alignISIS(out_w_ai,0.4);
+        fs_w_ai(:,2)=fs_w_ai(:,2)+fs_w_temp;
+        phs_w_ai(:,2)=phs_w_ai(:,2)+phs_w_temp;
+        [out_w_ai,fs_w_temp,phs_w_temp]=op_alignAverages(out_w_ai,0.4,'y');
+        fs_w_ai=fs_w_ai+fs_w_temp;
+        phs_w_ai=phs_w_ai+phs_w_temp;
+        [out_w_ai,fs_w_temp,phs_w_temp]=op_alignISIS(out_w_ai,0.4);
+        fs_w_ai(:,2)=fs_w_ai(:,2)+fs_w_temp;
+        phs_w_ai(:,2)=phs_w_ai(:,2)+phs_w_temp;
+        
+        %for fs_w_ai and phs_w_ai, take the average across both subspecs:
+        fs_w_ai=mean(fs_w_ai,2);
+        phs_w_ai=mean(phs_w_ai,2);
+    end
+    
+    %Now check the plots to make sure that they look okay:
+    %First make combined subspecs plots:
+    out_cc_temp=op_combinesubspecs(out_cc,'diff');
+    out_ai_cc_temp=op_combinesubspecs(out_ai,'diff');
+    if exist(filename2)
+        out_w_cc_temp=op_combinesubspecs(out_w_cc,'diff');
+        out_w_ai_cc_temp=op_combinesubspecs(out_w_ai,'diff');
+    end
+    
+    %Now plot them
+    close all
+    figure('position',[0 0 560 420]);
+    subplot(1,2,1);
+    plot(out_cc_temp.ppm,out_cc_temp.specs);
+    xlim([0 5]);
+    xlabel('Frequency (ppm)');
+    ylabel('Amplitude (a.u.)');
+    title('Subspecs not aligned: (all averages)');
+    subplot(1,2,2);
+    plot(out_ai_cc_temp.ppm,out_ai_cc_temp.specs);
+    xlim([0 5]);
+    xlabel('Frequency (ppm)');
+    ylabel('Amplitude (a.u.)');
+    title('Subspecs aligned: (all averages)');
+    
+    if exist(filename2)
+        figure('position',[0 550 560 420]);
+        subplot(1,2,1);
+        plot(out_w_cc_temp.ppm,out_w_cc_temp.specs);
+        xlim([3.7 5.7]);
+        xlabel('Frequency (ppm)');
+        ylabel('Amplitude (a.u.)');
+        title('Subspecs not aligned: (all averages)');
+        subplot(1,2,2);
+        plot(out_w_ai_cc_temp.ppm,out_w_ai_cc_temp.specs);
+        xlim([3.7 5.7]);
+        xlabel('Frequency (ppm)');
+        ylabel('Amplitude (a.u.)');
+        title('Subspecs aligned: (all averages)');
+    end
+    
+    figure('position',[570 50 560 420]);
+    subplot(2,1,1);
+    plot([1:length(fs_ai)],fs_ai);
+    xlabel('Scan Number');
+    ylabel('Frequency Drift (Hz)');
+    title('Estimated Frequency Drift');
+    subplot(2,1,2);
+    plot([1:length(phs_ai)],phs_ai);
+    xlabel('Scan Number');
+    ylabel('Phase Drift (Degrees)');
+    title('Estimated Phase Drift');
+    
+    
+    sat=input('are you satisfied with alignment of subspecs? ','s');
+    if strcmp(sat,'n') || strcmp(sat,'N')
+        out_ai=out_cc;
+        if exist(filename2)
+            out_w_ai=out_w_cc;
+        end
+    end
+    
+else
+    out_ai=out_cc;
+    out_w_ai=out_w_cc;
+    fs_ai=zeros(size(out_cc.fids,out_cc.dims.averages),1);
+    phs_ai=zeros(size(out_cc.fids,out_cc.dims.averages),1);
 end
+    
+
+%Now combine the subspecs
+out_cs=op_combinesubspecs(out_ai,'diff');
+if exist(filename2)
+    out_w_cs=op_combinesubspecs(out_w_ai,'diff');
+end
+
+%%%%%%%%%%%%%%%%%%%%%END OF ALIGNMENT OF SUBSPECTRA%%%%%%%%%%%%%%%%%%
+
+
+
 
 %%%%%%%%%%%%%%%%%%%%%OPTIONAL REMOVAL OF BAD AVERAGES%%%%%%%%%%%%%%%%
 close all
@@ -124,6 +246,8 @@ title('Water suppressed spectra (all averages)');
 out_cs2=out_cs;
 nBadAvgTotal=0;
 nbadAverages=1;
+allAveragesLeft=[1:out_cs.sz(out_cs.dims.averages)]';
+allBadAverages=[];
 rmbadav=input('would you like to remove bad averages?  ','s');
 close all;
 if rmbadav=='n' || rmbadav=='N'
@@ -135,10 +259,16 @@ else
         iter=1;
         nbadAverages=1;
         nBadAvgTotal=0;
+        allAveragesLeft=[1:out_cs.sz(out_cs.dims.averages)]';
+        allBadAverages=[];
         out_cs2=out_cs;
         while nbadAverages>0;
             [out_rm,metric{iter},badAverages]=op_rmbadaverages(out_cs2,nsd,'t');
             badAverages;
+            allBadAverages=[allBadAverages; allAveragesLeft(badAverages)];
+            badavMask_temp=zeros(length(allAveragesLeft),1);
+            badavMask_temp(badAverages)=1;
+            allAveragesLeft=allAveragesLeft(~badavMask_temp);
             nbadAverages=length(badAverages)*out_raw.sz(out_raw.dims.subSpecs);
             nBadAvgTotal=nBadAvgTotal+nbadAverages;
             out_cs2=out_rm;
@@ -183,21 +313,32 @@ fclose(fid);
 
 close all;
 
+%Now remove the entries from fs_ai and phs_ai that correspond to
+%the bad-averages that were removed.
+BadAvgMask=zeros(length(fs_ai),1);
+BadAvgMask(allBadAverages)=1;
+size(BadAvgMask)
+size(fs_ai)
+fs_ai=fs_ai(~BadAvgMask);
+phs_ai=phs_ai(~BadAvgMask);
+
 %%%%%%%%%%%%%%%%%%%%END OF BAD AVERAGES REMOVAL%%%%%%%%%%%%%%%%%%%%
 
 %now align averages;
 driftCorr=input('Would you like to perform the frequency drift correction?  ','s');
 if driftCorr=='n'|| driftCorr=='N'
     out_aa=out_rm;
-    out_w_aa=out_w_cs;
+    if exist(filename2)
+        out_w_aa=out_w_cs;
+    end
 else
     sat='n'
     while sat=='n' || sat=='N'
         out_rm2=out_rm;
         fsPoly=100;
         phsPoly=1000;
-        fsCum=zeros(out_rm2.sz(out_rm2.dims.averages),1);
-        phsCum=zeros(out_rm2.sz(out_rm2.dims.averages),1);
+        fsCum=fs_ai;
+        phsCum=phs_ai;
         iter=1;
         while (abs(fsPoly(1))>0.001 || abs(phsPoly(1))>0.01) && iter<iterin
             close all
@@ -286,11 +427,11 @@ end
 
 wrt=input('write? ','s');
 if wrt=='y' || wrt=='Y'
-    RF=io_writelcm(out,[filestring '/' filestring '_lcm'],8.5);
-    RF=io_writelcm(out_noproc,[filestring '/' filestring '_lcm_unprocessed'],8.5);
+    RF=io_writelcm(out,[filestring '/' filestring '_lcm'],out.te);
+    RF=io_writelcm(out_noproc,[filestring '/' filestring '_lcm_unprocessed'],out_noproc.te);
     if exist(filename2)
-        RF=io_writelcm(out_w,[filestring '_w/' filestring '_w_lcm'],8.5);
-        RF=io_writelcm(out_w_noproc,[filestring '_w/' filestring '_w_unprocessed'],8.5);
+        RF=io_writelcm(out_w,[filestring '_w/' filestring '_w_lcm'],out_w.te);
+        RF=io_writelcm(out_w_noproc,[filestring '_w/' filestring '_w_unprocessed'],out_w_noproc.te);
     end
 end
 

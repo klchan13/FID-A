@@ -2,7 +2,7 @@
 %Jamie Near, McGill University 2014.
 %
 % USAGE:
-% out=io_loadspec_IMA(filename,Bo,spectralwidth);
+% out=io_loadspec_IMA(filename,Bo,spectralwidth,te,tr);
 % 
 % DESCRIPTION:
 % Loads a siemens .IMA file into matlab structure format.
@@ -11,14 +11,24 @@
 % filename       = Filename of Siemens .IMA file to load.
 % Bo             = Field strength (Tesla).
 % spectralwidth  = spectral width of the input spectrum (Hz).
+% te             = Echo time (ms).  Optional.  Defulat is [].
+% tr             = Repetition time (ms).  Optional.  Default is [].
 
-function out=io_loadspec_IMA(filename,Bo,spectralwidth);
+function out=io_loadspec_IMA(filename,Bo,spectralwidth,te,tr);
 
-%open dicom file:
-fd=dicom_open(filename);
+if nargin<5
+    tr=[];
+    if nargin<4
+        te=[];
+    end
+end
 
-%read in dicom file:
-fids=dicom_get_spectrum_siemens(fd);
+%Load Dicom Info using Chris Rogers' "SiemensCsaParse.m" function:
+info=SiemensCsaParse(filename);
+
+%Read in Dicom file using Chris Rogers' "SiemensCsaReadFid.m" function:
+[fids,info]=SiemensCsaReadFid(info,0);
+
 sz=size(fids);
 
 Naverages=1;
@@ -142,7 +152,7 @@ end
 %Calculate t and ppm arrays using the calculated parameters:
 f=[(-spectralwidth/2)+(spectralwidth/(2*sz(1))):spectralwidth/(sz(1)):(spectralwidth/2)-(spectralwidth/(2*sz(1)))];
 ppm=f/(Bo*42.577);
-ppm=ppm+4.6082;
+ppm=ppm+4.65;
 
 t=[0:dwelltime:(sz(1)-1)*dwelltime];
 
@@ -164,6 +174,8 @@ out.rawAverages=rawAverages;
 out.subspecs=subspecs;
 out.rawSubspecs=rawSubspecs;
 out.seq='';
+out.te=te;
+out.tr=tr;
 out.pointsToLeftshift=0;
 
 
