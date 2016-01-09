@@ -72,7 +72,28 @@ editPhCyc1=[0 90]; %phase cycling steps for 1st editing pulse [degrees]
 editPhCyc2=[0 90 180 270]; %phase cycling steps for 2nd editing pulse [degrees]
 refPhCyc1=[0,90]; %phase cycling steps for 1st refocusing pulse [degrees]
 refPhCyc2=[0,90]; %phase cycling steps for 2nd refocusing pulse [degrees]
+TE = 144.0;
+TE1 = 13.4;
+pulse_type = 'shaped';
+edit_angle_on = 180;
+edit_angle_off = 180;
 % ************END OF INPUT PARAMETERS**********************************
+
+run check_param_fields
+
+TE2=TE-TE1;%TE1 in ms
+
+taus=[TE1/2, TE2/4, TE2/4  + TE1/2, TE2/4, TE2/4]; %timing of the pulse sequence [ms]
+
+if strcmp(pulse_type, 'edit_ideal')
+    pulse_seq = @sim_mega_edit_ideal;
+elseif strcmp(pulse_type, 'refoc_ideal')
+    pulse_seq = @sim_mega_refoc_ideal;
+elseif strcmp(pulse_type, 'shaped')
+    pulse_seq = @sim_mega_shaped;
+elseif strcmp(pulse_type, 'ideal')
+    pulse_seq = @sim_mega_ideal;
+end
 
 %Load RF waveforms
 refRF=io_loadRFwaveform(refocWaveform,'ref',0);
@@ -130,10 +151,10 @@ parfor X=1:length(x);
                             'Second Edit phase cycle ' num2str(EP2) ' of ' num2str(length(editPhCyc2)) ', '...
                             'First Refoc phase cycle ' num2str(RP1) ' of ' num2str(length(refPhCyc1)) ', '...
                             'Second Refoc phase cycle ' num2str(RP2) ' of ' num2str(length(refPhCyc2)) '!!!']); 
-                        outON_posxy_epc_rpc{X}{Y}{EP1}{EP2}{RP1}{RP2}=sim_megapress_shaped(Npts,sw,Bfield,lw,taus,sys,...
+                        outON_posxy_epc_rpc{X}{Y}{EP1}{EP2}{RP1}{RP2}= pulse_seq(Npts,sw,Bfield,lw,taus,sys,...
                             editRFon,editTp,editPhCyc1(EP1),editPhCyc2(EP2),...
                             refRF,refTp,Gx,Gy,x(X),y(Y),refPhCyc1(RP1),refPhCyc2(RP2));
-                        outOFF_posxy_epc_rpc{X}{Y}{EP1}{EP2}{RP1}{RP2}=sim_megapress_shaped(Npts,sw,Bfield,lw,taus,sys,...
+                        outOFF_posxy_epc_rpc{X}{Y}{EP1}{EP2}{RP1}{RP2}=pulse_seq(Npts,sw,Bfield,lw,taus,sys,...
                             editRFoff,editTp,editPhCyc1(EP1),editPhCyc2(EP2),...
                             refRF,refTp,Gx,Gy,x(X),y(Y),refPhCyc1(RP1),refPhCyc2(RP2));
                     
@@ -167,6 +188,9 @@ parfor X=1:length(x);
         
     end %end of spatial loop (parfor) in y direction.
 end %end of spatial loop (parfor) in x direction.
+
+spect{1} = outOFF_posxy;
+spect{2} = outON_posxy;
 
 outDIFF=op_subtractScans(outON,outOFF);
         
