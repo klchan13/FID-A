@@ -124,7 +124,16 @@ for n=1:length(rfB1)
         expm(1i*Rx(:,:,n))*...      %rotate about x by theta
         expm(1i*Ry(:,:,n))*...      %rotate about y by alpha
         expm(1i*Rz(:,:,n));         %rotate about z by zeta
+    %Evolve the coupling for dt
+    d = ...
+    expm(-1i*H.HABJonly*dt(n)) * ...
+    d * ...
+    expm(1i*H.HABJonly*dt(n));
+    
 end
+
+
+
 
 d_out=d;
     
