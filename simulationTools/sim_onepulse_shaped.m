@@ -31,7 +31,7 @@
 
 function out = sim_onepulse_shaped(n,sw,Bfield,linewidth,sys,RF,tp,dwdx,G,phCyc)
 
-if nargin>10 && G~=0
+if nargin==10 && G~=0 % KLC - change nargin>10 to nargin==10, in it's current state, nargin can't be > 10
     simType='g';
     G=G*0.01;  %convert from G/cm to [T/m]
     dwdx=dwdx/100;  %convert from cm to [m]

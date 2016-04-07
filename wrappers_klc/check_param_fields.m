@@ -20,7 +20,10 @@ if ~isempty(more_params)
                 param_len(p_idx) = (isa(refocWaveform2, 'cell') && length(refocWaveform2) > 1);
             case 'editWaveform'
                 editWaveform = getfield(more_params, 'editWaveform');
-                param_len(p_idx) = (isa(editWaveform, 'cell') && length(editWaveform) > 1);
+                param_len(p_idx) = (isa(editWaveform, 'cell') && length(editWaveform) > 1); 
+            case 'excWaveform'
+                excWaveform = getfield(more_params, 'excWaveform');
+                param_len(p_idx) = (isa(excWaveform, 'cell') && length(excWaveform) > 1);
             case 'editOnFreq'
                 editOnFreq = getfield(more_params, 'editOnFreq');
                 param_len(p_idx) = length(editOnFreq) > 1;
@@ -30,6 +33,9 @@ if ~isempty(more_params)
             case 'editTp'
                 editTp = getfield(more_params, 'editTp');
                 param_len(p_idx) = length(editTp) > 1;
+            case 'excTp'
+                excTp = getfield(more_params, 'excTp');
+                param_len(p_idx) = length(excTp) > 1;
             case 'refTp'
                 refTp = getfield(more_params, 'refTp');
                 param_len(p_idx) = length(refTp) > 1;
@@ -69,6 +75,12 @@ if ~isempty(more_params)
             case 'y'
                 y = getfield(more_params, 'y');
                 param_len(p_idx) = (isa(y, 'cell') && length(y) > 1);
+            case 'Gz'
+                Gz = getfield(more_params, 'Gz');
+                param_len(p_idx) = length(Gz) > 1;
+            case 'z'
+                z = getfield(more_params, 'z');
+                param_len(p_idx) = (isa(z, 'cell') && length(z) > 1);
             case 'TE1'
                 TE1 = getfield(more_params, 'TE1');
                 param_len(p_idx) = length(TE1) > 1;
