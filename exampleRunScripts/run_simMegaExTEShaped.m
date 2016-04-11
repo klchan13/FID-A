@@ -1,4 +1,4 @@
-% run_simMegaPressShaped.m
+% run_simMegaExTEShaped.m
 % Jamie Near, McGill University 2014.
 % 
 % USAGE:
@@ -6,7 +6,7 @@
 % clicking "Run".
 % 
 % DESCRIPTION:
-% This script simulates a MEGA-PRESS experiment with fully shaped editing 
+% This script simulates an ExTE-MEGA-PRESS experiment with fully shaped editing 
 % and refocusing pulses.  Phase cycling of both the editing and refocusing
 % pulses is performed.  Furthermore, simulations are run at various
 % locations in space to account for the within-voxel spatial variation of
@@ -51,21 +51,21 @@
 refocWaveform='sampleRefocPulse.pta'; %name of refocusing pulse waveform.
 editWaveform='sampleEditPulse.pta'; %name of editing pulse waveform.
 editOnFreq=1.88; %freqeucny of edit on pulse[ppm]
-editOffFreq=7.5; %frequency of edit off pulse[ppm]
-refTp=5; %duration of refocusing pulses[ms]
+refTp=5.2; %duration of refocusing pulses[ms]
 editTp=14; %duration of editing pulses[ms]
 Npts=2048; %number of spectral points
 sw=2000; %spectral width [Hz]
 Bfield=3; %magnetic field strength [Tesla]
 lw=2; %linewidth of the output spectrum [Hz]
-Bfield=3; %Magnetic field strength in [T]
-thkX=3; %slice thickness of x refocusing pulse [cm]
-thkY=3; %slice thickness of y refocusing pulse [cm]
+Bfield=2.89; %Magnetic field strength in [T]
+thkX=3.5; %slice thickness of x refocusing pulse [cm]
+thkY=3.5; %slice thickness of y refocusing pulse [cm]
 %x=[-2.0125:0.175:2.0125]; %X positions to simulate [cm]
 %y=[-2.0125:0.175:2.0125]; %y positions to simulate [cm]
 x=0;
 y=0;
-taus=[5,17,17,17,12]; %timing of the pulse sequence [ms]
+taus_inv=[4.9,67.4885,33.5115,33.4885,62.6115]; %timing of J-inv scan [ms]
+taus_ref=[4.9,50.4885,50.5115,50.4885,45.6115]; %timing of J-refoc scan [ms]
 spinSys='GABA'; %spin system to simulate
 centreFreq=3.0; %Centre frequency of MR spectrum [ppm]
 editPhCyc1=[0 90]; %phase cycling steps for 1st editing pulse [degrees]
@@ -82,8 +82,14 @@ gamma=42577000; %gyromagnetic ratio
 
 %Load spin systems
 load spinSystems
-sys=eval(['sys' spinSys]);
-
+if strcmp(spinSys,'MM');
+    sys=sysGABA;
+    sys.shifts(3)=1.7;
+    sys.shifts(4)=1.7;
+else
+    sys=eval(['sys' spinSys]);
+end
+    
 %Resample refocusing RF pulse from 400 pts to 100 pts to reduce
 %computational workload
 refRF=rf_resample(refRF,100);
@@ -92,8 +98,6 @@ refRF=rf_resample(refRF,100);
 %zero-frequency) is frequency shifted to produce and edit-on and an
 %edit-off pulse;
 editRFon=rf_freqshift(editRF,editTp,(centreFreq-editOnFreq)*Bfield*gamma/1e6);
-editRFoff=rf_freqshift(editRF,editTp,(centreFreq-editOffFreq)*Bfield*gamma/1e6);
-
 
 Gx=(refRF.tbw/(refTp/1000))/(gamma*thkX/10000); %[G/cm]
 Gy=(refRF.tbw/(refTp/1000))/(gamma*thkY/10000); %[G/cm]
@@ -117,8 +121,8 @@ outOFF=struct([]);
 %loop through space: Don't forget to initialize the parallel processing
 %toolbox workers using 'matlabpool open N' (for N workers, 12 max).
 
-%for X=1:length(x);
-parfor X=1:length(x);
+for X=1:length(x);
+%parfor X=1:length(x);
     for Y=1:length(y);
         for EP1=1:length(editPhCyc1)
             for EP2=1:length(editPhCyc2)
@@ -130,11 +134,11 @@ parfor X=1:length(x);
                             'Second Edit phase cycle ' num2str(EP2) ' of ' num2str(length(editPhCyc2)) ', '...
                             'First Refoc phase cycle ' num2str(RP1) ' of ' num2str(length(refPhCyc1)) ', '...
                             'Second Refoc phase cycle ' num2str(RP2) ' of ' num2str(length(refPhCyc2)) '!!!']); 
-                        outON_posxy_epc_rpc{X}{Y}{EP1}{EP2}{RP1}{RP2}=sim_megapress_shaped(Npts,sw,Bfield,lw,taus,sys,...
+                        outON_posxy_epc_rpc{X}{Y}{EP1}{EP2}{RP1}{RP2}=sim_megapress_shaped(Npts,sw,Bfield,lw,taus_ref,sys,...
                             editRFon,editTp,editPhCyc1(EP1),editPhCyc2(EP2),...
                             refRF,refTp,Gx,Gy,x(X),y(Y),refPhCyc1(RP1),refPhCyc2(RP2));
-                        outOFF_posxy_epc_rpc{X}{Y}{EP1}{EP2}{RP1}{RP2}=sim_megapress_shaped(Npts,sw,Bfield,lw,taus,sys,...
-                            editRFoff,editTp,editPhCyc1(EP1),editPhCyc2(EP2),...
+                        outOFF_posxy_epc_rpc{X}{Y}{EP1}{EP2}{RP1}{RP2}=sim_megapress_shaped(Npts,sw,Bfield,lw,taus_inv,sys,...
+                            editRFon,editTp,editPhCyc1(EP1),editPhCyc2(EP2),...
                             refRF,refTp,Gx,Gy,x(X),y(Y),refPhCyc1(RP1),refPhCyc2(RP2));
                     
                         if RP1==1 && RP2==1
@@ -171,11 +175,11 @@ end %end of spatial loop (parfor) in x direction.
 outDIFF=op_subtractScans(outON,outOFF);
         
 figure 
-sim_make2DSimPlot(outON_posxy{1},2.75,3.25);
+sim_make2DSimPlot(outON_posxy,2.75,3.25);
 figure
-sim_make2DSimPlot(outOFF_posxy{1},2.75,3.25);
+sim_make2DSimPlot(outOFF_posxy,2.75,3.25);
 figure
-sim_make2DSimPlot(outDIFF_posxy{1},2.75,3.25);
+sim_make2DSimPlot(outDIFF_posxy,2.75,3.25);
 
 
 
